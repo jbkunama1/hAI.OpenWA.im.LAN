@@ -23,6 +23,10 @@
 
 <br/>
 
+[![Buy me a coffee](https://cdn.buymeacoffee.com/buttons/default-orange.png)](https://www.buymeacoffee.com/highfish)
+
+<br/>
+
 > 💡 **Dieser Guide** löst alle bekannten Probleme beim Betrieb von OpenWA
 > in einem lokalen Netzwerk — ohne Traefik, ohne Cloudflare-Timeout, ohne Dependency-Chaos.
 
