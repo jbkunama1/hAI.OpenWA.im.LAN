@@ -335,6 +335,7 @@ services:
       API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
     volumes:
       - openwa-data:/app/data
+      # Nur nötig, wenn Plugins Docker-Zugriff benötigen
       - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
@@ -433,7 +434,7 @@ curl -H "X-API-Key: DEIN_KEY" https://YOURS/api/health/detailed</pre></div>
     <tr><th>Service</th><th>Port</th><th>URL</th><th>Beschreibung</th></tr>
     <tr><td>🤖 API</td><td>2785</td><td><code>https://YOURS/api</code></td><td>REST API</td></tr>
     <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOURS/api/docs</code></td><td>Interaktive API-Doku</td></tr>
-    <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>https://YOURS</code></td><td>Web-UI (via Reverse Proxy)</td></tr>
+    <tr><td>🖥️ Dashboard</td><td>443</td><td><code>https://YOURS</code></td><td>Web-UI (über Reverse Proxy)</td></tr>
     <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://YOURS:8085</code></td><td>Web-UI (LAN direkt)</td></tr>
   </table>
 
@@ -559,6 +560,7 @@ services:
       API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
     volumes:
       - openwa-data:/app/data
+      # Required only if plugins need Docker socket access
       - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
@@ -657,7 +659,7 @@ curl -H "X-API-Key: YOUR_KEY" https://YOURS/api/health/detailed</pre></div>
     <tr><th>Service</th><th>Port</th><th>URL</th><th>Description</th></tr>
     <tr><td>🤖 API</td><td>2785</td><td><code>https://YOURS/api</code></td><td>REST API</td></tr>
     <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOURS/api/docs</code></td><td>Interactive API docs</td></tr>
-    <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>https://YOURS</code></td><td>Web UI (reverse proxy)</td></tr>
+    <tr><td>🖥️ Dashboard</td><td>443</td><td><code>https://YOURS</code></td><td>Web UI (via reverse proxy)</td></tr>
     <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://YOURS:8085</code></td><td>Web UI (direct LAN)</td></tr>
   </table>
 
