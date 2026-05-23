@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hAI · OpenWA im LAN</title>
+  <meta name="description" content="WhatsApp API Gateway – self-hosted, no cloud, no Traefik. Portainer standalone deployment guide." />
+  <link rel="icon" href="https://raw.githubusercontent.com/jbkunama1/hAI.OpenWA.im.LAN/main/logo_OPENWA.LAN.png" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #6366f1;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #2496ED;
+      --radius: 10px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+      --mono: 'Fira Mono', 'Cascadia Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.7; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.92); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .6rem 2rem;
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.05rem; }
+    .nav-logo img { height: 32px; border-radius: 6px; }
+    .nav-right { display: flex; gap: .8rem; align-items: center; }
+    .lang-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: .3rem .9rem; border-radius: 6px;
+      cursor: pointer; font-size: .85rem; transition: background .2s;
+    }
+    .lang-btn:hover { background: var(--accent); border-color: var(--accent); }
+    .lang-btn.active { background: var(--accent); border-color: var(--accent); }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center; padding: 4rem 1.5rem 2rem;
+      background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,.15) 0%, transparent 70%);
+    }
+    .hero img { width: min(340px, 85vw); margin-bottom: 1.5rem; }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: .5rem; }
+    .hero p.sub { color: var(--muted); font-size: 1.1rem; margin-bottom: 1.5rem; }
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-bottom: 1.4rem; }
+    .badges img { height: 28px; }
+    .bmac { margin-top: .5rem; }
+    .bmac img { height: 34px; border-radius: 6px; transition: opacity .2s; }
+    .bmac img:hover { opacity: .85; }
+
+    /* ── LAYOUT ── */
+    .wrapper { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ── PROBLEM TABLE ── */
+    .problem-grid {
+      display: grid; grid-template-columns: 1fr;
+      gap: .75rem; margin: 1.5rem 0;
+    }
+    .problem-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.2rem;
+      display: grid; grid-template-columns: auto 1fr;
+      gap: .4rem .9rem; align-items: start;
+    }
+    .problem-card .icon { font-size: 1.4rem; line-height: 1; padding-top: .1rem; }
+    .problem-card .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .problem-card code { font-family: var(--mono); font-size: .88rem; color: var(--yellow); word-break: break-all; }
+    .tag { display: inline-block; padding: .15rem .55rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+    .tag-red { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+    .tag-green { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+
+    /* ── STEPS ── */
+    .steps { counter-reset: step; margin: 1.5rem 0; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem 1.4rem 1.4rem 4.2rem;
+      margin-bottom: 1rem; position: relative;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute; left: 1.2rem; top: 1.3rem;
+      width: 2rem; height: 2rem; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .9rem;
+    }
+    .step h3 { font-size: 1.05rem; margin-bottom: .7rem; }
+
+    /* ── CODE ── */
+    pre {
+      background: #0d1117; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.2rem;
+      overflow-x: auto; font-family: var(--mono); font-size: .82rem;
+      line-height: 1.6; margin: .8rem 0;
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute; top: .5rem; right: .6rem;
+      background: var(--border); border: none; color: var(--muted);
+      padding: .2rem .6rem; border-radius: 4px; cursor: pointer;
+      font-size: .72rem; transition: background .2s, color .2s;
+    }
+    .copy-btn:hover { background: var(--accent); color: #fff; }
+
+    code { font-family: var(--mono); font-size: .88rem; color: var(--yellow); }
+    pre code { color: var(--text); font-size: inherit; }
+
+    /* ── CALLOUT ── */
+    .callout {
+      border-left: 4px solid var(--yellow);
+      background: rgba(245,158,11,.07);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: .9rem 1.1rem; margin: 1rem 0;
+      font-size: .93rem;
+    }
+    .callout.info { border-color: var(--accent); background: rgba(99,102,241,.07); }
+    .callout.success { border-color: var(--green); background: rgba(34,197,94,.07); }
+
+    /* ── ACCORDION ── */
+    details {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: .6rem; overflow: hidden;
+    }
+    summary {
+      padding: .9rem 1.2rem; cursor: pointer; font-weight: 600;
+      list-style: none; display: flex; align-items: center; gap: .6rem;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '▾'; margin-left: auto; transition: transform .2s; }
+    details[open] summary::after { transform: rotate(-180deg); }
+    details .inner { padding: 0 1.2rem 1.1rem; }
+
+    /* ── PORTS TABLE ── */
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th { background: var(--surface); color: var(--muted); font-size: .8rem;
+         text-transform: uppercase; letter-spacing: .06em; padding: .6rem 1rem;
+         border-bottom: 1px solid var(--border); text-align: left; }
+    td { padding: .6rem 1rem; border-bottom: 1px solid var(--border); font-size: .92rem; }
+    tr:last-child td { border-bottom: none; }
+    td a { color: var(--accent); text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+
+    /* ── SECTION HEADERS ── */
+    h2 { font-size: 1.35rem; margin: 2.5rem 0 .8rem; padding-bottom: .4rem;
+         border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .5rem; }
+    p { margin-bottom: .8rem; }
+    ul { padding-left: 1.4rem; margin-bottom: .8rem; }
+    li { margin-bottom: .3rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 2rem 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted); font-size: .85rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── LANG TOGGLE ── */
+    [data-lang] { display: none; }
+    .lang-de [data-lang="de"] { display: block; }
+    .lang-en [data-lang="en"] { display: block; }
+    .lang-de [data-lang="de"].inline { display: inline; }
+    .lang-en [data-lang="en"].inline { display: inline; }
+  </style>
+</head>
+<body class="lang-de">
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <img src="https://raw.githubusercontent.com/jbkunama1/hAI.OpenWA.im.LAN/main/logo_OPENWA.LAN.png" alt="Logo" />
+    <span>hAI · OpenWA</span>
+  </div>
+  <div class="nav-right">
+    <button class="lang-btn active" id="btn-de" onclick="setLang('de')">🇩🇪 DE</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">🇬🇧 EN</button>
+    <a href="https://github.com/jbkunama1/hAI.OpenWA.im.LAN" target="_blank" style="color:var(--muted);font-size:.85rem;">GitHub ↗</a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <img src="https://raw.githubusercontent.com/jbkunama1/hAI.OpenWA.im.LAN/main/logo_OPENWA.LAN.png" alt="hAI OpenWA Logo" />
+  <h1>hAI · OpenWA <span data-lang="de" class="inline">im LAN</span><span data-lang="en" class="inline">in the LAN</span></h1>
+  <p class="sub">
+    <span data-lang="de" class="inline">WhatsApp API Gateway — lokal, ohne Cloud, ohne Traefik</span>
+    <span data-lang="en" class="inline">WhatsApp API Gateway — self-hosted, no cloud, no Traefik</span>
+  </p>
+  <div class="badges">
+    <img src="https://img.shields.io/badge/based%20on-OpenWA%200.1.6-6366f1?style=for-the-badge&logo=github" alt="OpenWA" />
+    <img src="https://img.shields.io/badge/Node.js-20%20LTS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node" />
+    <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+    <img src="https://img.shields.io/badge/Portainer-Stack-13BEF9?style=for-the-badge&logo=portainer&logoColor=white" alt="Portainer" />
+    <img src="https://img.shields.io/badge/Traefik-not%20required-lightgrey?style=for-the-badge" alt="Traefik" />
+    <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="MIT" />
+  </div>
+  <div class="bmac">
+    <a href="https://www.buymeacoffee.com/highfish" target="_blank">
+      <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" />
+    </a>
+  </div>
+</div>
+
+<div class="wrapper">
+
+<!-- ══════════════════════════════════════════
+     DEUTSCH
+══════════════════════════════════════════ -->
+<div data-lang="de">
+
+  <h2>🤔 Warum dieser Guide?</h2>
+  <p>Das offizielle <a href="https://github.com/rmyndharis/OpenWA" target="_blank">OpenWA-Repo</a> ist für Production mit <strong>Traefik</strong> ausgelegt. Wer OpenWA auf einem Heimserver, NAS oder Pi ohne Traefik betreiben will, läuft in mehrere Fallstricke:</p>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="icon">❌</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>host not found in upstream "openwa"</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">nginx.conf erwartet Traefik-Netzwerk</span> → <span class="tag tag-green">Standalone NGINX</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">❌</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>npm error ERESOLVE / exit code 1</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">vite@8 inkompatibel mit plugin-react@5</span> → <span class="tag tag-green">Node 20 + --legacy-peer-deps</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">⏱️</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>Error 524 / Gateway Timeout</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">Build dauert &gt;100s</span> → <span class="tag tag-green">Build per SSH, nicht in Portainer</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">🔐</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>401 Invalid API key</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">X-API-Key fehlt oder falsch</span> → <span class="tag tag-green">Richtige Env-Variable + Header</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>✅ Voraussetzungen</h2>
+  <ul>
+    <li>🖥️ Server mit Docker &amp; Docker Compose</li>
+    <li>📦 Portainer (optional)</li>
+    <li>🌐 Externes Docker-Netzwerk <code>highfishNetwork</code></li>
+    <li>🔑 SSH-Zugang zum Server</li>
+  </ul>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker network create highfishNetwork</pre>
+
+  <h2>🔨 Schritt 1 – Dashboard lokal bauen</h2>
+  <div class="callout">⚠️ <strong>Den Build NICHT über Portainer starten!</strong> Der npm-Build dauert länger als das Proxy-Timeout (~100s) und schlägt mit <strong>Error 524</strong> fehl. → Einmalig per SSH bauen.</div>
+  <div class="steps">
+    <div class="step">
+      <h3>Repo klonen</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cd /opt
+git clone --depth=1 https://github.com/rmyndharis/OpenWA.git openwa-src
+cd openwa-src/dashboard</pre>
+    </div>
+    <div class="step">
+      <h3>Dependency-Konflikte fixen</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' Dockerfile
+sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' Dockerfile</pre>
+    </div>
+    <div class="step">
+      <h3>Dashboard-Image bauen</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker build \
+  --build-arg VITE_API_URL=http://YOUR_SERVER_IP:2785 \
+  -t openwa-dashboard:local \
+  .
+
+docker images | grep openwa-dashboard</pre>
+    </div>
+  </div>
+
+  <h2>🐳 Schritt 2 – Portainer Stack YAML</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>version: "3.8"
+services:
+  openwa-api:
+    build:
+      context: https://github.com/rmyndharis/OpenWA.git
+      dockerfile: Dockerfile
+    container_name: openwa-api
+    restart: unless-stopped
+    ports:
+      - "2785:2785"
+    environment:
+      NODE_ENV: production
+      PORT: 2785
+      DATABASE_TYPE: sqlite
+      DATABASE_NAME: /app/data/openwa.sqlite
+      ENGINE_TYPE: whatsapp-web.js
+      SESSION_DATA_PATH: /app/data/sessions
+      PUPPETEER_HEADLESS: "true"
+      PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: /app/data/media
+      REDIS_ENABLED: "false"
+      WEBHOOK_TIMEOUT: "10000"
+      WEBHOOK_MAX_RETRIES: "3"
+      RATE_LIMIT_TTL: "60"
+      RATE_LIMIT_MAX: "100"
+      PLUGINS_ENABLED: "true"
+      PLUGINS_DIR: /app/data/plugins
+      API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
+    volumes:
+      - openwa-data:/app/data
+    networks:
+      - highfishNetwork
+
+  dashboard:
+    image: openwa-dashboard:local
+    container_name: openwa-dashboard
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      - openwa-api
+    networks:
+      - highfishNetwork
+
+volumes:
+  openwa-data:
+networks:
+  highfishNetwork:
+    external: true</pre>
+  <div class="callout info">🔑 Sicheren API-Key generieren: <code>openssl rand -hex 32</code></div>
+
+  <h2>🧪 Schritt 3 – API testen</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button># Health Check (kein Key nötig)
+curl -i http://YOUR_SERVER_IP:2785/api/health
+
+# Authentifiziert
+curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
+  -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"</pre>
+
+  <h2>🖥️ Schritt 4 – Dashboard öffnen</h2>
+  <div class="callout success">🌐 Browser: <strong>http://YOUR_SERVER_IP:8085</strong><br/>🔗 API-URL: <strong>http://YOUR_SERVER_IP:2785</strong><br/>🔑 API-Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
+
+  <h2>🔄 Auto-Update per Cron</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cat > /opt/openwa-update.sh << 'EOF'
+#!/bin/bash
+set -e
+REPO_DIR="/opt/openwa-src"
+IMAGE_NAME="openwa-dashboard"
+VITE_API_URL="http://YOUR_SERVER_IP:2785"
+
+cd "$REPO_DIR"
+git fetch origin main
+CHANGES=$(git diff HEAD origin/main --name-only | grep "^dashboard/" || true)
+git pull origin main
+sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' dashboard/Dockerfile
+sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' dashboard/Dockerfile
+[ -z "$CHANGES" ] && echo "No changes." && exit 0
+TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+docker build --build-arg VITE_API_URL="$VITE_API_URL" \
+  -t "$IMAGE_NAME:$TIMESTAMP" -t "$IMAGE_NAME:latest" "$REPO_DIR/dashboard"
+docker restart openwa-dashboard
+docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
+  | grep -v latest | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
+EOF
+chmod +x /opt/openwa-update.sh
+
+# Cron (täglich 3:00 Uhr)
+echo "0 3 * * * /opt/openwa-update.sh >> /var/log/openwa-update.log 2>&1" | crontab -</pre>
+
+  <h2>🐛 Bekannte Probleme & Lösungen</h2>
+  <details>
+    <summary>❌ host not found in upstream "openwa"</summary>
+    <div class="inner"><p><strong>Ursache:</strong> Dockerfile.traefik nutzt nginx-Upstream der nur im Traefik-Netzwerk auflösbar ist.</p><p><strong>Lösung:</strong> Im Stack <code>image: openwa-dashboard:local</code> verwenden, kein <code>build:</code>-Block der auf GitHub zeigt.</p></div>
+  </details>
+  <details>
+    <summary>❌ npm error ERESOLVE / exit code 1</summary>
+    <div class="inner"><p><strong>Ursache:</strong> vite@8.x ist inkompatibel mit @vitejs/plugin-react@5.1.4.</p><p><strong>Lösung:</strong> Die zwei <code>sed</code>-Befehle aus Schritt 1 ausführen.</p></div>
+  </details>
+  <details>
+    <summary>⏱️ Error 524 / Timeout beim Portainer-Deploy</summary>
+    <div class="inner"><p><strong>Ursache:</strong> Proxy trennt nach ~100s. npm-Build dauert länger.</p><p><strong>Lösung:</strong> Dashboard <strong>nie</strong> über Portainer bauen. Immer per SSH (Schritt 1).</p></div>
+  </details>
+  <details>
+    <summary>🔐 401 Invalid API key</summary>
+    <div class="inner"><pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker exec -it openwa-api env | grep API_MASTER_KEY
+curl -H "X-API-Key: DEIN_KEY" http://IP:2785/api/health/detailed</pre></div>
+  </details>
+
+  <h2>🔌 Ports</h2>
+  <table>
+    <tr><th>Service</th><th>Port</th><th>URL</th><th>Beschreibung</th></tr>
+    <tr><td>🤖 API</td><td>2785</td><td><code>http://IP:2785/api</code></td><td>REST API</td></tr>
+    <tr><td>📖 Swagger</td><td>2785</td><td><code>http://IP:2785/api/docs</code></td><td>Interaktive API-Doku</td></tr>
+    <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://IP:8085</code></td><td>Web-UI</td></tr>
+  </table>
+
+</div><!-- /de -->
+
+<!-- ══════════════════════════════════════════
+     ENGLISH
+══════════════════════════════════════════ -->
+<div data-lang="en">
+
+  <h2>🤔 Why this guide?</h2>
+  <p>The official <a href="https://github.com/rmyndharis/OpenWA" target="_blank">OpenWA repo</a> is designed for production with <strong>Traefik</strong>. Running OpenWA on a home server, NAS, or Pi without Traefik leads directly into several pitfalls:</p>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="icon">❌</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>host not found in upstream "openwa"</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">nginx.conf expects Traefik network</span> → <span class="tag tag-green">Standalone NGINX</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">❌</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>npm error ERESOLVE / exit code 1</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">vite@8 incompatible with plugin-react@5</span> → <span class="tag tag-green">Node 20 + --legacy-peer-deps</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">⏱️</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>Error 524 / Gateway Timeout</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">Build takes &gt;100s</span> → <span class="tag tag-green">Build via SSH, not Portainer</span></div>
+      </div>
+    </div>
+    <div class="problem-card">
+      <span class="icon">🔐</span>
+      <div>
+        <div class="label">Problem</div>
+        <code>401 Invalid API key</code>
+        <div style="margin-top:.4rem"><span class="tag tag-red">X-API-Key missing or wrong</span> → <span class="tag tag-green">Correct env variable + header</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>✅ Prerequisites</h2>
+  <ul>
+    <li>🖥️ Server with Docker &amp; Docker Compose</li>
+    <li>📦 Portainer (optional)</li>
+    <li>🌐 External Docker network <code>highfishNetwork</code></li>
+    <li>🔑 SSH access to the server</li>
+  </ul>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker network create highfishNetwork</pre>
+
+  <h2>🔨 Step 1 – Build the dashboard locally</h2>
+  <div class="callout">⚠️ <strong>Do NOT trigger the build via Portainer!</strong> The npm build takes longer than the proxy timeout (~100s) and will fail with <strong>Error 524</strong>. → Build once via SSH.</div>
+  <div class="steps">
+    <div class="step">
+      <h3>Clone the repo</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cd /opt
+git clone --depth=1 https://github.com/rmyndharis/OpenWA.git openwa-src
+cd openwa-src/dashboard</pre>
+    </div>
+    <div class="step">
+      <h3>Fix dependency conflicts</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' Dockerfile
+sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' Dockerfile</pre>
+    </div>
+    <div class="step">
+      <h3>Build the dashboard image</h3>
+      <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker build \
+  --build-arg VITE_API_URL=http://YOUR_SERVER_IP:2785 \
+  -t openwa-dashboard:local \
+  .
+
+docker images | grep openwa-dashboard</pre>
+    </div>
+  </div>
+
+  <h2>🐳 Step 2 – Portainer Stack YAML</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>version: "3.8"
+services:
+  openwa-api:
+    build:
+      context: https://github.com/rmyndharis/OpenWA.git
+      dockerfile: Dockerfile
+    container_name: openwa-api
+    restart: unless-stopped
+    ports:
+      - "2785:2785"
+    environment:
+      NODE_ENV: production
+      PORT: 2785
+      DATABASE_TYPE: sqlite
+      DATABASE_NAME: /app/data/openwa.sqlite
+      ENGINE_TYPE: whatsapp-web.js
+      SESSION_DATA_PATH: /app/data/sessions
+      PUPPETEER_HEADLESS: "true"
+      PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: /app/data/media
+      REDIS_ENABLED: "false"
+      WEBHOOK_TIMEOUT: "10000"
+      WEBHOOK_MAX_RETRIES: "3"
+      RATE_LIMIT_TTL: "60"
+      RATE_LIMIT_MAX: "100"
+      PLUGINS_ENABLED: "true"
+      PLUGINS_DIR: /app/data/plugins
+      API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
+    volumes:
+      - openwa-data:/app/data
+    networks:
+      - highfishNetwork
+
+  dashboard:
+    image: openwa-dashboard:local
+    container_name: openwa-dashboard
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      - openwa-api
+    networks:
+      - highfishNetwork
+
+volumes:
+  openwa-data:
+networks:
+  highfishNetwork:
+    external: true</pre>
+  <div class="callout info">🔑 Generate a secure API key: <code>openssl rand -hex 32</code></div>
+
+  <h2>🧪 Step 3 – Test the API</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button># Public health check
+curl -i http://YOUR_SERVER_IP:2785/api/health
+
+# Authenticated
+curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
+  -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"</pre>
+
+  <h2>🖥️ Step 4 – Open the dashboard</h2>
+  <div class="callout success">🌐 Browser: <strong>http://YOUR_SERVER_IP:8085</strong><br/>🔗 API URL: <strong>http://YOUR_SERVER_IP:2785</strong><br/>🔑 API Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
+
+  <h2>🔄 Auto-update via Cron</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cat > /opt/openwa-update.sh << 'EOF'
+#!/bin/bash
+set -e
+REPO_DIR="/opt/openwa-src"
+IMAGE_NAME="openwa-dashboard"
+VITE_API_URL="http://YOUR_SERVER_IP:2785"
+
+cd "$REPO_DIR"
+git fetch origin main
+CHANGES=$(git diff HEAD origin/main --name-only | grep "^dashboard/" || true)
+git pull origin main
+sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' dashboard/Dockerfile
+sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' dashboard/Dockerfile
+[ -z "$CHANGES" ] && echo "No changes." && exit 0
+TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+docker build --build-arg VITE_API_URL="$VITE_API_URL" \
+  -t "$IMAGE_NAME:$TIMESTAMP" -t "$IMAGE_NAME:latest" "$REPO_DIR/dashboard"
+docker restart openwa-dashboard
+docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
+  | grep -v latest | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
+EOF
+chmod +x /opt/openwa-update.sh
+
+# Daily at 3:00 AM
+echo "0 3 * * * /opt/openwa-update.sh >> /var/log/openwa-update.log 2>&1" | crontab -</pre>
+
+  <h2>🐛 Known Issues & Solutions</h2>
+  <details>
+    <summary>❌ host not found in upstream "openwa"</summary>
+    <div class="inner"><p><strong>Cause:</strong> Dockerfile.traefik uses an nginx upstream only resolvable in a Traefik network.</p><p><strong>Fix:</strong> Use <code>image: openwa-dashboard:local</code> in the stack, not a <code>build:</code> block pointing to GitHub.</p></div>
+  </details>
+  <details>
+    <summary>❌ npm error ERESOLVE / exit code 1</summary>
+    <div class="inner"><p><strong>Cause:</strong> vite@8.x is incompatible with @vitejs/plugin-react@5.1.4.</p><p><strong>Fix:</strong> Run the two <code>sed</code> commands from Step 1.</p></div>
+  </details>
+  <details>
+    <summary>⏱️ Error 524 / Timeout during Portainer deploy</summary>
+    <div class="inner"><p><strong>Cause:</strong> Proxy drops after ~100s. npm build takes longer.</p><p><strong>Fix:</strong> <strong>Never</strong> build the dashboard through Portainer. Always use SSH (Step 1).</p></div>
+  </details>
+  <details>
+    <summary>🔐 401 Invalid API key</summary>
+    <div class="inner"><pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker exec -it openwa-api env | grep API_MASTER_KEY
+curl -H "X-API-Key: YOUR_KEY" http://IP:2785/api/health/detailed</pre></div>
+  </details>
+
+  <h2>🔌 Ports</h2>
+  <table>
+    <tr><th>Service</th><th>Port</th><th>URL</th><th>Description</th></tr>
+    <tr><td>🤖 API</td><td>2785</td><td><code>http://IP:2785/api</code></td><td>REST API</td></tr>
+    <tr><td>📖 Swagger</td><td>2785</td><td><code>http://IP:2785/api/docs</code></td><td>Interactive API docs</td></tr>
+    <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://IP:8085</code></td><td>Web UI</td></tr>
+  </table>
+
+</div><!-- /en -->
+
+</div><!-- /wrapper -->
+
+<footer>
+  <p>
+    <strong>hAI · OpenWA in the LAN</strong> — Self-hosted, open source, no cloud required 🏠<br/>
+    <a href="https://github.com/jbkunama1/hAI.OpenWA.im.LAN" target="_blank">github.com/jbkunama1/hAI.OpenWA.im.LAN</a>
+    · Created by <a href="https://github.com/jbkunama1" target="_blank">therealteacher</a> · Karlsruhe 🇩🇪
+  </p>
+</footer>
+
+<script>
+  function setLang(lang) {
+    document.body.className = 'lang-' + lang;
+    document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+  }
+  function copyCode(btn) {
+    const pre = btn.parentElement;
+    const text = pre.innerText.replace('copy\n', '').replace('copy', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = 'copy', 1800);
+    });
+  }
+</script>
+</body>
+</html>
