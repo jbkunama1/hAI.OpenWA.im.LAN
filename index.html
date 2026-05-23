@@ -296,6 +296,7 @@ docker build \
   --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN \
   -t openwa-dashboard:local \
   .</pre>
+      <p><small>Format-Tipp: <code>VITE_API_URL</code> immer mit Protokoll setzen, z. B. <code>https://api.example.com</code>.</small></p>
     </div>
     <div class="step">
       <h3>Images prüfen</h3>
@@ -339,6 +340,7 @@ services:
       # Achtung: Docker-Socket-Mount gibt dem Container quasi Root-Zugriff auf den Host
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
+      # Bei geändertem PORT hier ebenfalls anpassen
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
       timeout: 10s
@@ -400,7 +402,7 @@ docker build --build-arg VITE_API_URL="$VITE_API_URL" \
   "$REPO_DIR/dashboard"
 docker restart openwa-dashboard
 docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
-  | grep -v "latest\|local" | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
+  | grep -E -v "(latest|local)" | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
 EOF
 chmod +x /opt/openwa-update.sh
 
@@ -522,6 +524,7 @@ docker build \
   --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN \
   -t openwa-dashboard:local \
   .</pre>
+      <p><small>Format tip: always set <code>VITE_API_URL</code> with protocol, e.g. <code>https://api.example.com</code>.</small></p>
     </div>
     <div class="step">
       <h3>Verify images</h3>
@@ -565,6 +568,7 @@ services:
       # Warning: mounting docker.sock gives near root-equivalent host control
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
+      # If PORT changes, update this endpoint too
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
       timeout: 10s
@@ -626,7 +630,7 @@ docker build --build-arg VITE_API_URL="$VITE_API_URL" \
   "$REPO_DIR/dashboard"
 docker restart openwa-dashboard
 docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
-  | grep -v "latest\|local" | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
+  | grep -E -v "(latest|local)" | sort -r | tail -n +3 | awk '{print $2}' | xargs -r docker rmi
 EOF
 chmod +x /opt/openwa-update.sh
 
