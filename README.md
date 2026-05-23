@@ -1,13 +1,6 @@
 <div align="center">
 
-```
- ██████╗ ██████╗ ███████╗███╗   ██╗██╗    ██╗ █████╗
-██╔═══██╗██╔══██╗██╔════╝████╗  ██║██║    ██║██╔══██╗
-██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║ █╗ ██║███████║
-██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║███╗██║██╔══██║
-╚██████╔╝██║     ███████╗██║ ╚████║╚███╔███╔╝██║  ██║
- ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝ ╚══╝╚══╝ ╚═╝  ╚═╝
-```
+<img src="https://raw.githubusercontent.com/jbkunama1/hAI.OpenWA.im.LAN/main/logo_OPENWA.LAN.png" alt="hAI OpenWA im LAN Logo" width="400"/>
 
 # 🤖 hAI · OpenWA im LAN
 ### *WhatsApp API Gateway — lokal, ohne Cloud, ohne Traefik*
