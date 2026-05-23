@@ -63,7 +63,9 @@ Wer OpenWA aber auf einem **Heimserver, NAS oder Pi** ohne Traefik betreiben wil
 📦  Portainer (optional — Stack-YAML läuft auch direkt)
 🌐  Externes Docker-Netzwerk
 🔑  SSH-Zugang zum Server
-🌍  Domain oder feste LAN-IP (Beispiel: wa.arbeitermili.eu)
+🌍  Zwei Subdomains:
+       Dashboard: wa.arbeitermili.eu
+       API:       waapi.arbeitermili.eu
 ```
 
 Netzwerk anlegen (falls noch nicht vorhanden):
@@ -104,16 +106,15 @@ cd /opt/openwa-src/dashboard
 sed -i 's/RUN npm ci/RUN npm ci --legacy-peer-deps/' Dockerfile
 
 # 🏗️ Dashboard-Image bauen
-# VITE_API_URL = URL unter der deine API erreichbar ist
+# VITE_API_URL zeigt auf die API-Subdomain
 docker build \
-  --build-arg VITE_API_URL=https://wa.arbeitermili.eu \
+  --build-arg VITE_API_URL=https://waapi.arbeitermili.eu \
   -t openwa-dashboard:local \
   .
 ```
 
 > 💡 **VITE_API_URL** ist eine **Build-Zeit-Variable** — sie wird fest ins JS-Bundle eingebaut.
-> Bei Domain ohne Reverse Proxy: `http://192.168.178.10:2785`
-> Bei Domain mit Reverse Proxy (empfohlen): `https://wa.arbeitermili.eu`
+> Das Dashboard unter `wa.arbeitermili.eu` spricht die API unter `waapi.arbeitermili.eu` an.
 
 ### ✅ Prüfen ob beide Images da sind
 
@@ -214,9 +215,11 @@ networks:
 > ```
 > Diesen Key beim Dashboard-Login eingeben und als `X-API-Key`-Header in allen API-Requests verwenden.
 
-### Nginx Proxy Manager (falls Domain verwendet wird)
+### Nginx Proxy Manager Konfiguration
 
-Bei Betrieb hinter NPM mit einer Domain (z.B. `wa.arbeitermili.eu`) einen **Proxy Host** anlegen:
+Zwei separate Proxy Hosts anlegen:
+
+**Dashboard:**
 
 | Feld | Wert |
 |---|---|
@@ -224,11 +227,15 @@ Bei Betrieb hinter NPM mit einer Domain (z.B. `wa.arbeitermili.eu`) einen **Prox
 | Forward Hostname | `openwa-dashboard` |
 | Forward Port | `80` |
 
-Zusätzlich unter **Custom Locations** einen Eintrag für die API:
+**API:**
 
-| Location | Forward Hostname | Forward Port |
-|---|---|---|
-| `/api` | `openwa` | `2785` |
+| Feld | Wert |
+|---|---|
+| Domain | `waapi.arbeitermili.eu` |
+| Forward Hostname | `openwa` |
+| Forward Port | `2785` |
+
+> 💡 Da API und Dashboard auf **verschiedenen Subdomains** laufen, sind keine Custom Locations nötig — jede Subdomain bekommt einen eigenen Proxy Host.
 
 ---
 
@@ -236,10 +243,10 @@ Zusätzlich unter **Custom Locations** einen Eintrag für die API:
 
 ```bash
 # 🟢 Health Check (öffentlich — kein Key erforderlich)
-curl -i http://192.168.178.10:2785/api/health
+curl -i https://waapi.arbeitermili.eu/api/health
 
 # 🔐 Authentifizierter Endpoint (Key erforderlich)
-curl -i http://192.168.178.10:2785/api/health/detailed \
+curl -i https://waapi.arbeitermili.eu/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"
 ```
 
@@ -266,10 +273,9 @@ docker exec -it openwa env | grep API_MASTER_KEY
 ## 🖥️ Schritt 4 – Dashboard öffnen
 
 ```
-🌐  Browser (LAN):    http://192.168.178.10:8085
-🌐  Browser (Domain): https://wa.arbeitermili.eu
-🔗  API-URL:          https://wa.arbeitermili.eu  (oder http://192.168.178.10:2785)
-🔑  API-Key:          YOUR_SECURE_API_KEY_HERE
+🌐  Dashboard:  https://wa.arbeitermili.eu
+🔗  API-URL:    https://waapi.arbeitermili.eu
+🔑  API-Key:    YOUR_SECURE_API_KEY_HERE
 ```
 
 ---
@@ -288,7 +294,7 @@ set -e
 
 REPO_DIR="/opt/openwa-src"
 IMAGE_NAME="openwa-dashboard"
-VITE_API_URL="https://wa.arbeitermili.eu"
+VITE_API_URL="https://waapi.arbeitermili.eu"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 echo "$LOG_PREFIX 🚀 Start"
@@ -392,7 +398,7 @@ tail -f /var/log/openwa-update.log
 docker exec -it openwa env | grep API_MASTER_KEY
 
 # Korrekter Header in curl:
-curl -H "X-API-Key: DEIN_KEY" http://192.168.178.10:2785/api/health/detailed
+curl -H "X-API-Key: DEIN_KEY" https://waapi.arbeitermili.eu/api/health/detailed
 ```
 </details>
 
@@ -418,10 +424,10 @@ curl -H "X-API-Key: DEIN_KEY" http://192.168.178.10:2785/api/health/detailed
 
 | Service | Port | URL | Beschreibung |
 |---|---|---|---|
-| 🤖 API | `2785` | `http://192.168.178.10:2785/api` | REST API |
-| 📖 Swagger | `2785` | `http://192.168.178.10:2785/api/docs` | Interaktive API-Doku |
+| 🤖 API | `2785` | `https://waapi.arbeitermili.eu/api` | REST API |
+| 📖 Swagger | `2785` | `https://waapi.arbeitermili.eu/api/docs` | Interaktive API-Doku |
+| 🖥️ Dashboard | `8085` | `https://wa.arbeitermili.eu` | Web-UI (via Reverse Proxy) |
 | 🖥️ Dashboard | `8085` | `http://192.168.178.10:8085` | Web-UI (LAN direkt) |
-| 🌍 Dashboard | `443` | `https://wa.arbeitermili.eu` | Web-UI (via Reverse Proxy) |
 
 ---
 
