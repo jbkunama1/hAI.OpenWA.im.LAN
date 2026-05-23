@@ -92,7 +92,7 @@ sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' Dockerfile
 sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' Dockerfile
 
 # 🏗️ Build the dashboard image
-# YOUR_SERVER_IP = IP your browser uses (e.g. 192.168.178.10)
+# YOUR_SERVER_IP = IP your browser uses (e.g. YOURS)
 docker build \
   --build-arg VITE_API_URL=http://YOUR_SERVER_IP:2785 \
   -t openwa-dashboard:local \
