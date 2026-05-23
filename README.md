@@ -11,7 +11,7 @@
 [![node](https://img.shields.io/badge/Node.js-20%20LTS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![portainer](https://img.shields.io/badge/Portainer-Stack-13BEF9?style=for-the-badge&logo=portainer&logoColor=white)](https://portainer.io)
-[![traefik](https://img.shields.io/badge/Traefik-not%20required-lightgrey?style=for-the-badge)]()
+[![traefik](https://img.shields.io/badge/Traefik-not%20required-lightgrey?style=for-the-badge)](https://github.com/jbkunama1/hAI.OpenWA.im.LAN)
 [![license](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -31,7 +31,7 @@
 
 - [🤔 Warum dieser Guide?](#-warum-dieser-guide)
 - [✅ Voraussetzungen](#-voraussetzungen)
-- [🔨 Schritt 1 – Dashboard lokal bauen](#-schritt-1--dashboard-lokal-bauen)
+- [🔨 Schritt 1 – Images lokal bauen](#-schritt-1--images-lokal-bauen)
 - [🐳 Schritt 2 – Portainer Stack](#-schritt-2--portainer-stack)
 - [🧪 Schritt 3 – API testen](#-schritt-3--api-testen)
 - [🖥️ Schritt 4 – Dashboard öffnen](#-schritt-4--dashboard-öffnen)
@@ -50,9 +50,9 @@ Wer OpenWA aber auf einem **Heimserver, NAS oder Pi** ohne Traefik betreiben wil
 |---|---|---|
 | `host not found in upstream "openwa"` | nginx.conf erwartet Traefik-Netzwerk | Standalone NGINX, kein Upstream-Proxy |
 | `npm error ERESOLVE` | `vite@8` inkompatibel mit `@vitejs/plugin-react@5` | Node 20 + `--legacy-peer-deps` |
-| ⏱️ Error 524 / Timeout | Build dauert >100s, Proxy bricht ab | Build per SSH — nicht in Portainer |
+| ⏱️ Error 524 / Timeout | Build dauert >100s, Proxy bricht ab | **Beide** Images per SSH bauen — nicht in Portainer |
 | `401 Invalid API key` | `X-API-Key`-Header fehlt oder Key falsch | Richtige Env-Variable + korrekter Header |
-| NGINX-Standardseite | Falsches Dockerfile verwendet | Lokales Image `openwa-dashboard:local` nutzen |
+| NGINX-Standardseite | Falsches Dockerfile verwendet | Lokale Images `openwa-api:local` + `openwa-dashboard:local` nutzen |
 
 ---
 
@@ -63,6 +63,7 @@ Wer OpenWA aber auf einem **Heimserver, NAS oder Pi** ohne Traefik betreiben wil
 📦  Portainer (optional — Stack-YAML läuft auch direkt)
 🌐  Externes Docker-Netzwerk
 🔑  SSH-Zugang zum Server
+🌍  Domain oder feste LAN-IP (Beispiel: wa.arbeitermili.eu)
 ```
 
 Netzwerk anlegen (falls noch nicht vorhanden):
@@ -73,39 +74,54 @@ docker network create highfishNetwork
 
 ---
 
-## 🔨 Schritt 1 – Dashboard lokal bauen
+## 🔨 Schritt 1 – Images lokal bauen
 
 > ⚠️ **Den Build NICHT über Portainer starten!**
 > Der Prozess dauert länger als das Proxy-Timeout (~100 Sekunden)
 > und schlägt mit **Error 524** fehl.
 > → Einmalig per SSH bauen, danach läuft alles automatisch.
 
+### 1a – Backend-API bauen
+
 ```bash
 # 📥 Repo klonen
 cd /opt
 git clone --depth=1 https://github.com/rmyndharis/OpenWA.git openwa-src
-cd openwa-src/dashboard
+
+# 🏗️ Backend-Image bauen (~3–5 Min, npm warn deprecated = normal, kein Fehler)
+docker build \
+  https://github.com/rmyndharis/OpenWA.git#main \
+  -t openwa-api:local
+```
+
+### 1b – Dashboard bauen
+
+```bash
+cd /opt/openwa-src/dashboard
 
 # 🔧 Bekannte Dependency-Konflikte fixen
 # Problem: vite@8 ist inkompatibel mit @vitejs/plugin-react@5.1.4
-sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' Dockerfile
-sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' Dockerfile
+sed -i 's/RUN npm ci/RUN npm ci --legacy-peer-deps/' Dockerfile
 
 # 🏗️ Dashboard-Image bauen
-# YOUR_SERVER_IP = IP die dein Browser nutzt (z.B. 192.168.178.10)
+# VITE_API_URL = URL unter der deine API erreichbar ist
 docker build \
-  --build-arg VITE_API_URL=http://YOUR_SERVER_IP:2785 \
+  --build-arg VITE_API_URL=https://wa.arbeitermili.eu \
   -t openwa-dashboard:local \
   .
-
-# ✅ Prüfen ob Image da ist
-docker images | grep openwa-dashboard
 ```
 
-**Erwartete Ausgabe:**
-```
-REPOSITORY         TAG     IMAGE ID       CREATED         SIZE
-openwa-dashboard   local   abc123def456   2 minutes ago   ~45MB
+> 💡 **VITE_API_URL** ist eine **Build-Zeit-Variable** — sie wird fest ins JS-Bundle eingebaut.
+> Bei Domain ohne Reverse Proxy: `http://192.168.178.10:2785`
+> Bei Domain mit Reverse Proxy (empfohlen): `https://wa.arbeitermili.eu`
+
+### ✅ Prüfen ob beide Images da sind
+
+```bash
+docker images | grep openwa
+# Erwartete Ausgabe:
+# openwa-api        local   abc123...   5 minutes ago   ~500MB
+# openwa-dashboard  local   def456...   2 minutes ago   ~45MB
 ```
 
 ---
@@ -120,13 +136,11 @@ version: "3.8"
 services:
 
   # ═══════════════════════════════════════
-  # 🤖 OpenWA API
+  # 🤖 OpenWA API (lokal gebaut)
   # ═══════════════════════════════════════
   openwa-api:
-    build:
-      context: https://github.com/rmyndharis/OpenWA.git
-      dockerfile: Dockerfile
-    container_name: openwa-api
+    image: openwa-api:local          # ← Schritt 1a muss vorher ausgeführt werden!
+    container_name: openwa
     restart: unless-stopped
     ports:
       - "2785:2785"
@@ -161,6 +175,7 @@ services:
       API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
     volumes:
       - openwa-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
@@ -174,7 +189,7 @@ services:
   # 🖥️ Dashboard (lokal gebaut — kein Build in Portainer)
   # ═══════════════════════════════════════
   dashboard:
-    image: openwa-dashboard:local   # ← Schritt 1 muss vorher ausgeführt werden!
+    image: openwa-dashboard:local    # ← Schritt 1b muss vorher ausgeführt werden!
     container_name: openwa-dashboard
     restart: unless-stopped
     ports:
@@ -199,16 +214,32 @@ networks:
 > ```
 > Diesen Key beim Dashboard-Login eingeben und als `X-API-Key`-Header in allen API-Requests verwenden.
 
+### Nginx Proxy Manager (falls Domain verwendet wird)
+
+Bei Betrieb hinter NPM mit einer Domain (z.B. `wa.arbeitermili.eu`) einen **Proxy Host** anlegen:
+
+| Feld | Wert |
+|---|---|
+| Domain | `wa.arbeitermili.eu` |
+| Forward Hostname | `openwa-dashboard` |
+| Forward Port | `80` |
+
+Zusätzlich unter **Custom Locations** einen Eintrag für die API:
+
+| Location | Forward Hostname | Forward Port |
+|---|---|---|
+| `/api` | `openwa` | `2785` |
+
 ---
 
 ## 🧪 Schritt 3 – API testen
 
 ```bash
 # 🟢 Health Check (öffentlich — kein Key erforderlich)
-curl -i http://YOUR_SERVER_IP:2785/api/health
+curl -i http://192.168.178.10:2785/api/health
 
 # 🔐 Authentifizierter Endpoint (Key erforderlich)
-curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
+curl -i http://192.168.178.10:2785/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"
 ```
 
@@ -226,7 +257,7 @@ curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
 
 **❌ Bei `401 Invalid API key`** — Key im Container prüfen:
 ```bash
-docker exec -it openwa-api env | grep API_MASTER_KEY
+docker exec -it openwa env | grep API_MASTER_KEY
 # Ausgabe muss exakt dem gesetzten Key entsprechen
 ```
 
@@ -235,9 +266,10 @@ docker exec -it openwa-api env | grep API_MASTER_KEY
 ## 🖥️ Schritt 4 – Dashboard öffnen
 
 ```
-🌐  Browser:   http://YOUR_SERVER_IP:8085
-🔗  API-URL:   http://YOUR_SERVER_IP:2785
-🔑  API-Key:   YOUR_SECURE_API_KEY_HERE
+🌐  Browser (LAN):    http://192.168.178.10:8085
+🌐  Browser (Domain): https://wa.arbeitermili.eu
+🔗  API-URL:          https://wa.arbeitermili.eu  (oder http://192.168.178.10:2785)
+🔑  API-Key:          YOUR_SECURE_API_KEY_HERE
 ```
 
 ---
@@ -256,7 +288,7 @@ set -e
 
 REPO_DIR="/opt/openwa-src"
 IMAGE_NAME="openwa-dashboard"
-VITE_API_URL="http://YOUR_SERVER_IP:2785"
+VITE_API_URL="https://wa.arbeitermili.eu"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 echo "$LOG_PREFIX 🚀 Start"
@@ -267,8 +299,7 @@ CHANGES=$(git diff HEAD origin/main --name-only | grep "^dashboard/" || true)
 git pull origin main
 
 # 🔧 Dockerfile-Fixes nach jedem git pull neu anwenden
-sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' dashboard/Dockerfile
-sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' dashboard/Dockerfile
+sed -i 's/RUN npm ci/RUN npm ci --legacy-peer-deps/' dashboard/Dockerfile
 
 if [ -z "$CHANGES" ]; then
   echo "$LOG_PREFIX ✅ Keine Dashboard-Änderungen, überspringe Build."
@@ -282,6 +313,7 @@ docker build \
   --build-arg VITE_API_URL="$VITE_API_URL" \
   -t "$IMAGE_NAME:$TIMESTAMP" \
   -t "$IMAGE_NAME:latest" \
+  -t "$IMAGE_NAME:local" \
   "$REPO_DIR/dashboard"
 
 docker restart openwa-dashboard
@@ -290,7 +322,7 @@ echo "$LOG_PREFIX ♻️  Container neu gestartet."
 # 🧹 Alte Images aufräumen: nur 2 neueste behalten
 echo "$LOG_PREFIX 🗑️  Räume alte Images auf..."
 docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
-  | grep -v "latest" \
+  | grep -v "latest\|local" \
   | sort -r \
   | tail -n +3 \
   | awk '{print $2}' \
@@ -338,7 +370,7 @@ tail -f /var/log/openwa-update.log
 
 **Ursache:** `vite@8.x` (im Repo) ist inkompatibel mit `@vitejs/plugin-react@5.1.4` (unterstützt nur bis vite@7).
 
-**Lösung:** Die beiden `sed`-Befehle aus Schritt 1 ausführen — Node 20 pinnen und `npm install --legacy-peer-deps` setzen.
+**Lösung:** Den `sed`-Befehl aus Schritt 1b ausführen — `npm ci --legacy-peer-deps` setzen.
 </details>
 
 <details>
@@ -346,7 +378,7 @@ tail -f /var/log/openwa-update.log
 
 **Ursache:** Cloudflare und andere Proxies trennen HTTP-Verbindungen nach ~100 Sekunden. Der npm-Build dauert länger.
 
-**Lösung:** Dashboard **nie** über Portainer bauen. Immer per SSH (Schritt 1). Danach nur noch `image: openwa-dashboard:local` im Stack.
+**Lösung:** **Beide** Images (API + Dashboard) **nie** über Portainer bauen. Immer per SSH (Schritt 1). Danach nur noch `image: openwa-api:local` und `image: openwa-dashboard:local` im Stack.
 </details>
 
 <details>
@@ -357,10 +389,10 @@ tail -f /var/log/openwa-update.log
 **Lösung:**
 ```bash
 # Key im laufenden Container prüfen
-docker exec -it openwa-api env | grep API_MASTER_KEY
+docker exec -it openwa env | grep API_MASTER_KEY
 
 # Korrekter Header in curl:
-curl -H "X-API-Key: DEIN_KEY" http://IP:2785/api/health/detailed
+curl -H "X-API-Key: DEIN_KEY" http://192.168.178.10:2785/api/health/detailed
 ```
 </details>
 
@@ -369,7 +401,15 @@ curl -H "X-API-Key: DEIN_KEY" http://IP:2785/api/health/detailed
 
 **Ursache:** Falsches Image oder Build nicht ausgeführt.
 
-**Lösung:** Schritt 1 erneut ausführen, dann `docker images | grep openwa-dashboard` prüfen. Image muss vorhanden sein bevor der Stack deployed wird.
+**Lösung:** Schritt 1b erneut ausführen, dann `docker images | grep openwa-dashboard` prüfen. Image muss vorhanden sein bevor der Stack deployed wird.
+</details>
+
+<details>
+<summary>❌ <b>npm warn deprecated ... (viele Zeilen)</b></summary>
+
+**Ursache:** Veraltete Abhängigkeiten im Upstream-Repo.
+
+**Lösung:** Keine — das sind nur **Warnings**, keine Fehler. Der Build läuft trotzdem durch.
 </details>
 
 ---
@@ -378,9 +418,10 @@ curl -H "X-API-Key: DEIN_KEY" http://IP:2785/api/health/detailed
 
 | Service | Port | URL | Beschreibung |
 |---|---|---|---|
-| 🤖 API | `2785` | `http://IP:2785/api` | REST API |
-| 📖 Swagger | `2785` | `http://IP:2785/api/docs` | Interaktive API-Doku |
-| 🖥️ Dashboard | `8085` | `http://IP:8085` | Web-UI (Standalone) |
+| 🤖 API | `2785` | `http://192.168.178.10:2785/api` | REST API |
+| 📖 Swagger | `2785` | `http://192.168.178.10:2785/api/docs` | Interaktive API-Doku |
+| 🖥️ Dashboard | `8085` | `http://192.168.178.10:8085` | Web-UI (LAN direkt) |
+| 🌍 Dashboard | `443` | `https://wa.arbeitermili.eu` | Web-UI (via Reverse Proxy) |
 
 ---
 
