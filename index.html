@@ -291,9 +291,10 @@ docker build \
       <h3>1b – Dashboard bauen</h3>
       <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cd /opt/openwa-src/dashboard
 sed -i -E 's/RUN npm ci( --legacy-peer-deps)?/RUN npm ci --legacy-peer-deps/' Dockerfile
+# idempotent: sicher bei wiederholter Ausführung
 
 docker build \
-  --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN \
+  --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN_URL \
   -t openwa-dashboard:local \
   .</pre>
       <p><small>Format-Tipp: <code>VITE_API_URL</code> immer mit Protokoll setzen, z. B. <code>https://api.example.com</code>.</small></p>
@@ -369,14 +370,14 @@ networks:
 
   <h2>🧪 Schritt 3 – API testen</h2>
   <pre><button class="copy-btn" onclick="copyCode(this)">copy</button># Health Check (kein Key nötig)
-curl -i https://YOUR_API_SUBDOMAIN/api/health
+curl -i https://YOUR_API_SUBDOMAIN_URL/api/health
 
 # Authentifiziert
-curl -i https://YOUR_API_SUBDOMAIN/api/health/detailed \
+curl -i https://YOUR_API_SUBDOMAIN_URL/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"</pre>
 
   <h2>🖥️ Schritt 4 – Dashboard öffnen</h2>
-  <div class="callout success">🌐 Dashboard: <strong>https://YOUR_DASHBOARD_SUBDOMAIN</strong><br/>🔗 API-URL: <strong>https://YOUR_API_SUBDOMAIN</strong><br/>🔑 API-Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
+  <div class="callout success">🌐 Dashboard: <strong>https://YOUR_DASHBOARD_SUBDOMAIN</strong><br/>🔗 API-URL: <strong>https://YOUR_API_SUBDOMAIN_URL</strong><br/>🔑 API-Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
 
   <h2>🔄 Auto-Update per Cron</h2>
   <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cat > /opt/openwa-update.sh << 'EOF'
@@ -384,7 +385,7 @@ curl -i https://YOUR_API_SUBDOMAIN/api/health/detailed \
 set -e
 REPO_DIR="/opt/openwa-src"
 IMAGE_NAME="openwa-dashboard"
-VITE_API_URL="https://YOUR_API_SUBDOMAIN"
+VITE_API_URL="https://YOUR_API_SUBDOMAIN_URL"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 echo "$LOG_PREFIX 🚀 Start"
@@ -425,7 +426,7 @@ echo "0 3 * * * /opt/openwa-update.sh >> /var/log/openwa-update.log 2>&1" | cron
   <details>
     <summary>🔐 401 Invalid API key</summary>
     <div class="inner"><pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker exec -it openwa-api env | grep API_MASTER_KEY
-curl -H "X-API-Key: DEIN_KEY" https://YOUR_API_SUBDOMAIN/api/health/detailed</pre></div>
+curl -H "X-API-Key: DEIN_KEY" https://YOUR_API_SUBDOMAIN_URL/api/health/detailed</pre></div>
   </details>
   <details>
     <summary>❌ NGINX zeigt nur Standardseite</summary>
@@ -435,8 +436,8 @@ curl -H "X-API-Key: DEIN_KEY" https://YOUR_API_SUBDOMAIN/api/health/detailed</pr
   <h2>🔌 Ports</h2>
   <table>
     <tr><th>Service</th><th>Port</th><th>URL</th><th>Beschreibung</th></tr>
-    <tr><td>🤖 API</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN/api</code></td><td>REST API</td></tr>
-    <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN/api/docs</code></td><td>Interaktive API-Doku</td></tr>
+    <tr><td>🤖 API</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN_URL/api</code></td><td>REST API</td></tr>
+    <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN_URL/api/docs</code></td><td>Interaktive API-Doku</td></tr>
     <tr><td>🖥️ Dashboard</td><td>443</td><td><code>https://YOUR_DASHBOARD_SUBDOMAIN</code></td><td>Web-UI (externer Proxy-Port)</td></tr>
     <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://SERVER_IP:8085</code></td><td>Web-UI (LAN direkt)</td></tr>
   </table>
@@ -519,9 +520,10 @@ docker build \
       <h3>1b – Build dashboard</h3>
       <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cd /opt/openwa-src/dashboard
 sed -i -E 's/RUN npm ci( --legacy-peer-deps)?/RUN npm ci --legacy-peer-deps/' Dockerfile
+# idempotent: safe to run multiple times
 
 docker build \
-  --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN \
+  --build-arg VITE_API_URL=https://YOUR_API_SUBDOMAIN_URL \
   -t openwa-dashboard:local \
   .</pre>
       <p><small>Format tip: always set <code>VITE_API_URL</code> with protocol, e.g. <code>https://api.example.com</code>.</small></p>
@@ -565,7 +567,7 @@ services:
     volumes:
       - openwa-data:/app/data
       # Required only if plugins need Docker socket access
-      # Warning: mounting docker.sock gives near root-equivalent host control
+      # Warning: mounting docker.sock grants full Docker daemon control and potentially host control
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       # If PORT changes, update this endpoint too
@@ -597,14 +599,14 @@ networks:
 
   <h2>🧪 Step 3 – Test the API</h2>
   <pre><button class="copy-btn" onclick="copyCode(this)">copy</button># Health check (no key required)
-curl -i https://YOUR_API_SUBDOMAIN/api/health
+curl -i https://YOUR_API_SUBDOMAIN_URL/api/health
 
 # Authenticated
-curl -i https://YOUR_API_SUBDOMAIN/api/health/detailed \
+curl -i https://YOUR_API_SUBDOMAIN_URL/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"</pre>
 
   <h2>🖥️ Step 4 – Open the dashboard</h2>
-  <div class="callout success">🌐 Dashboard: <strong>https://YOUR_DASHBOARD_SUBDOMAIN</strong><br/>🔗 API URL: <strong>https://YOUR_API_SUBDOMAIN</strong><br/>🔑 API Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
+  <div class="callout success">🌐 Dashboard: <strong>https://YOUR_DASHBOARD_SUBDOMAIN</strong><br/>🔗 API URL: <strong>https://YOUR_API_SUBDOMAIN_URL</strong><br/>🔑 API Key: <strong>YOUR_SECURE_API_KEY_HERE</strong></div>
 
   <h2>🔄 Auto-update via Cron</h2>
   <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>cat > /opt/openwa-update.sh << 'EOF'
@@ -612,7 +614,7 @@ curl -i https://YOUR_API_SUBDOMAIN/api/health/detailed \
 set -e
 REPO_DIR="/opt/openwa-src"
 IMAGE_NAME="openwa-dashboard"
-VITE_API_URL="https://YOUR_API_SUBDOMAIN"
+VITE_API_URL="https://YOUR_API_SUBDOMAIN_URL"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 echo "$LOG_PREFIX 🚀 Start"
@@ -653,7 +655,7 @@ echo "0 3 * * * /opt/openwa-update.sh >> /var/log/openwa-update.log 2>&1" | cron
   <details>
     <summary>🔐 401 Invalid API key</summary>
     <div class="inner"><pre><button class="copy-btn" onclick="copyCode(this)">copy</button>docker exec -it openwa-api env | grep API_MASTER_KEY
-curl -H "X-API-Key: YOUR_KEY" https://YOUR_API_SUBDOMAIN/api/health/detailed</pre></div>
+curl -H "X-API-Key: YOUR_KEY" https://YOUR_API_SUBDOMAIN_URL/api/health/detailed</pre></div>
   </details>
   <details>
     <summary>❌ NGINX shows default page</summary>
@@ -663,8 +665,8 @@ curl -H "X-API-Key: YOUR_KEY" https://YOUR_API_SUBDOMAIN/api/health/detailed</pr
   <h2>🔌 Ports</h2>
   <table>
     <tr><th>Service</th><th>Port</th><th>URL</th><th>Description</th></tr>
-    <tr><td>🤖 API</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN/api</code></td><td>REST API</td></tr>
-    <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN/api/docs</code></td><td>Interactive API docs</td></tr>
+    <tr><td>🤖 API</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN_URL/api</code></td><td>REST API</td></tr>
+    <tr><td>📖 Swagger</td><td>2785</td><td><code>https://YOUR_API_SUBDOMAIN_URL/api/docs</code></td><td>Interactive API docs</td></tr>
     <tr><td>🖥️ Dashboard</td><td>443</td><td><code>https://YOUR_DASHBOARD_SUBDOMAIN</code></td><td>Web UI (external proxy port)</td></tr>
     <tr><td>🖥️ Dashboard</td><td>8085</td><td><code>http://SERVER_IP:8085</code></td><td>Web UI (direct LAN)</td></tr>
   </table>
