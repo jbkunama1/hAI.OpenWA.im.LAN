@@ -64,8 +64,8 @@ Wer OpenWA aber auf einem **Heimserver, NAS oder Pi** ohne Traefik betreiben wil
 🌐  Externes Docker-Netzwerk
 🔑  SSH-Zugang zum Server
 🌍  Zwei Subdomains:
-       Dashboard: wa.arbeitermili.eu
-       API:       waapi.arbeitermili.eu
+       Dashboard: YOURS
+       API:       YOURS
 ```
 
 Netzwerk anlegen (falls noch nicht vorhanden):
@@ -108,13 +108,13 @@ sed -i 's/RUN npm ci/RUN npm ci --legacy-peer-deps/' Dockerfile
 # 🏗️ Dashboard-Image bauen
 # VITE_API_URL zeigt auf die API-Subdomain
 docker build \
-  --build-arg VITE_API_URL=https://waapi.arbeitermili.eu \
+  --build-arg VITE_API_URL=https://YOURS \
   -t openwa-dashboard:local \
   .
 ```
 
 > 💡 **VITE_API_URL** ist eine **Build-Zeit-Variable** — sie wird fest ins JS-Bundle eingebaut.
-> Das Dashboard unter `wa.arbeitermili.eu` spricht die API unter `waapi.arbeitermili.eu` an.
+> Das Dashboard unter `YOURS` spricht die API unter `YOURS` an.
 
 ### ✅ Prüfen ob beide Images da sind
 
@@ -223,7 +223,7 @@ Zwei separate Proxy Hosts anlegen:
 
 | Feld | Wert |
 |---|---|
-| Domain | `wa.arbeitermili.eu` |
+| Domain | `YOURS` |
 | Forward Hostname | `openwa-dashboard` |
 | Forward Port | `80` |
 
@@ -231,7 +231,7 @@ Zwei separate Proxy Hosts anlegen:
 
 | Feld | Wert |
 |---|---|
-| Domain | `waapi.arbeitermili.eu` |
+| Domain | `YOURS` |
 | Forward Hostname | `openwa` |
 | Forward Port | `2785` |
 
@@ -243,10 +243,10 @@ Zwei separate Proxy Hosts anlegen:
 
 ```bash
 # 🟢 Health Check (öffentlich — kein Key erforderlich)
-curl -i https://waapi.arbeitermili.eu/api/health
+curl -i https://YOURS/api/health
 
 # 🔐 Authentifizierter Endpoint (Key erforderlich)
-curl -i https://waapi.arbeitermili.eu/api/health/detailed \
+curl -i https://YOURS/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"
 ```
 
@@ -273,8 +273,8 @@ docker exec -it openwa env | grep API_MASTER_KEY
 ## 🖥️ Schritt 4 – Dashboard öffnen
 
 ```
-🌐  Dashboard:  https://wa.arbeitermili.eu
-🔗  API-URL:    https://waapi.arbeitermili.eu
+🌐  Dashboard:  https://YOURS
+🔗  API-URL:    https://YOURS
 🔑  API-Key:    YOUR_SECURE_API_KEY_HERE
 ```
 
@@ -294,7 +294,7 @@ set -e
 
 REPO_DIR="/opt/openwa-src"
 IMAGE_NAME="openwa-dashboard"
-VITE_API_URL="https://waapi.arbeitermili.eu"
+VITE_API_URL="https://YOURS"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 echo "$LOG_PREFIX 🚀 Start"
@@ -398,7 +398,7 @@ tail -f /var/log/openwa-update.log
 docker exec -it openwa env | grep API_MASTER_KEY
 
 # Korrekter Header in curl:
-curl -H "X-API-Key: DEIN_KEY" https://waapi.arbeitermili.eu/api/health/detailed
+curl -H "X-API-Key: DEIN_KEY" https://YOURS/api/health/detailed
 ```
 </details>
 
@@ -424,10 +424,10 @@ curl -H "X-API-Key: DEIN_KEY" https://waapi.arbeitermili.eu/api/health/detailed
 
 | Service | Port | URL | Beschreibung |
 |---|---|---|---|
-| 🤖 API | `2785` | `https://waapi.arbeitermili.eu/api` | REST API |
-| 📖 Swagger | `2785` | `https://waapi.arbeitermili.eu/api/docs` | Interaktive API-Doku |
-| 🖥️ Dashboard | `8085` | `https://wa.arbeitermili.eu` | Web-UI (via Reverse Proxy) |
-| 🖥️ Dashboard | `8085` | `http://192.168.178.10:8085` | Web-UI (LAN direkt) |
+| 🤖 API | `2785` | `https://YOURS/api` | REST API |
+| 📖 Swagger | `2785` | `https://YOURS/api/docs` | Interaktive API-Doku |
+| 🖥️ Dashboard | `8085` | `https://YOURS` | Web-UI (via Reverse Proxy) |
+| 🖥️ Dashboard | `8085` | `http://YOURS:8085` | Web-UI (LAN direkt) |
 
 ---
 
