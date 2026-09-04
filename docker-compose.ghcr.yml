@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+
+  # ----------------------------------------------------------------------
+  # OpenWA API (using ghcr.io image)
+  # ----------------------------------------------------------------------
+  openwa-api:
+    image: ghcr.io/jbkunama1/openwa-api:latest # Use ghcr.io image
+    container_name: openwa
+    restart: unless-stopped
+    ports:
+      - "2785:2785"
+    environment:
+      NODE_ENV: production
+      PORT: 2785
+      LOG_LEVEL: info
+      # Database
+      DATABASE_TYPE: sqlite
+      DATABASE_NAME: /app/data/openwa.sqlite
+      # WhatsApp Engine
+      ENGINE_TYPE: whatsapp-web.js
+      SESSION_DATA_PATH: /app/data/sessions
+      PUPPETEER_HEADLESS: "true"
+      PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+      # Storage
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: /app/data/media
+      # Redis (deactivated)
+      REDIS_ENABLED: "false"
+      # Webhook
+      WEBHOOK_TIMEOUT: "10000"
+      WEBHOOK_MAX_RETRIES: "3"
+      WEBHOOK_RETRY_DELAY: "5000"
+      # Rate Limiting
+      RATE_LIMIT_TTL: "60"
+      RATE_LIMIT_MAX: "100"
+      # Plugins
+      PLUGINS_ENABLED: "true"
+      PLUGINS_DIR: /app/data/plugins
+      # API Key - set a secure value!
+      API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
+    volumes:
+      - openwa-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - highfishNetwork
+
+  # ----------------------------------------------------------------------
+  # Dashboard (using ghcr.io image)
+  # ----------------------------------------------------------------------
+  dashboard:
+    image: ghcr.io/jbkunama1/openwa-dashboard:latest # Use ghcr.io image
+    container_name: openwa-dashboard
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      - openwa-api
+    networks:
+      - highfishNetwork
+
+volumes:
+  openwa-data:
+    driver: local
+
+networks:
+  highfishNetwork:
+    external: true
