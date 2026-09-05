@@ -1,9 +1,9 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="https://raw.githubusercontent.com/jbkunama1/hAI.OpenWA.im.LAN/main/logo_OPENWA.LAN.png" alt="hAI OpenWA in the LAN Logo" width="400"/>
 
-# 🤖 hAI · OpenWA in the LAN
-### *WhatsApp API Gateway — self-hosted, no cloud, no Traefik*
+# ðŸ¤– hAI Â· OpenWA in the LAN
+### *WhatsApp API Gateway â€” self-hosted, no cloud, no Traefik*
 
 <br/>
 
@@ -12,6 +12,7 @@
 [![docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![portainer](https://img.shields.io/badge/Portainer-Stack-13BEF9?style=for-the-badge&logo=portainer&logoColor=white)](https://portainer.io)
 [![traefik](https://img.shields.io/badge/Traefik-not%20required-lightgrey?style=for-the-badge)]()
+[![ghcr.io](https://img.shields.io/badge/ghcr.io-images%20available-2496ED?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jbkunama1/hAI.OpenWA.im.LAN/pkgs/container/openwa-api)
 [![license](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -20,49 +21,50 @@
 
 <br/>
 
-> 💡 **This guide** solves all known issues when running OpenWA
-> in a local network — no Traefik, no Cloudflare timeout, no dependency chaos.
+> ðŸ’¡ **This guide** solves all known issues when running OpenWA
+> in a local network â€” no Traefik, no Cloudflare timeout, no dependency chaos.
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## ðŸ“‹ Table of Contents
 
-- [🤔 Why this guide?](#-why-this-guide)
-- [✅ Prerequisites](#-prerequisites)
-- [🔨 Step 1 – Build the dashboard locally](#-step-1--build-the-dashboard-locally)
-- [🐳 Step 2 – Portainer Stack](#-step-2--portainer-stack)
-- [🧪 Step 3 – Test the API](#-step-3--test-the-api)
-- [🖥️ Step 4 – Open the dashboard](#-step-4--open-the-dashboard)
-- [🔄 Auto-update via Cron](#-auto-update-via-cron)
-- [🐛 Known Issues & Solutions](#-known-issues--solutions)
-- [🔌 Ports](#-ports)
+- [ðŸ¤” Why this guide?](#-why-this-guide)
+- [âœ… Prerequisites](#-prerequisites)
+- [ðŸ”¨ Step 1 â€“ Build the dashboard locally](#-step-1--build-the-dashboard-locally)
+- [ðŸ³ Step 2 â€“ Portainer Stack](#-step-2--portainer-stack)
+- [⚡ Quick Start with ghcr.io (Recommended)](#-quick-start-with-ghcrio-recommended)
+- [ðŸ§ª Step 3 â€“ Test the API](#-step-3--test-the-api)
+- [ðŸ–¥ï¸ Step 4 â€“ Open the dashboard](#-step-4--open-the-dashboard)
+- [ðŸ”„ Auto-update via Cron](#-auto-update-via-cron)
+- [ðŸ› Known Issues & Solutions](#-known-issues--solutions)
+- [ðŸ”Œ Ports](#-ports)
 
 ---
 
-## 🤔 Why this guide?
+## ðŸ¤” Why this guide?
 
 The official [OpenWA repo](https://github.com/rmyndharis/OpenWA) is designed for production with **Traefik**.
 Anyone running OpenWA on a **home server, NAS, or Pi** without Traefik will immediately hit several pitfalls:
 
-| ⚠️ Problem | 🔍 Cause | ✅ Solution here |
+| âš ï¸ Problem | ðŸ” Cause | âœ… Solution here |
 |---|---|---|
 | `host not found in upstream "openwa"` | nginx.conf expects a Traefik network | Standalone NGINX, no upstream proxy |
 | `npm error ERESOLVE` | `vite@8` incompatible with `@vitejs/plugin-react@5` | Node 20 + `--legacy-peer-deps` |
-| ⏱️ Error 524 / Timeout | Build takes >100s, proxy disconnects | Build via SSH — not in Portainer |
+| â±ï¸ Error 524 / Timeout | Build takes >100s, proxy disconnects | Build via SSH â€” not in Portainer |
 | `401 Invalid API key` | `X-API-Key` header missing or wrong | Correct env variable + correct header |
 | NGINX default page | Wrong Dockerfile used | Use local image `openwa-dashboard:local` |
 
 ---
 
-## ✅ Prerequisites
+## âœ… Prerequisites
 
 ```
-🖥️  Server with Docker & Docker Compose
-📦  Portainer (optional — Stack YAML works standalone too)
-🌐  External Docker network
-🔑  SSH access to the server
+ðŸ–¥ï¸  Server with Docker & Docker Compose
+ðŸ“¦  Portainer (optional â€” Stack YAML works standalone too)
+ðŸŒ  External Docker network
+ðŸ”‘  SSH access to the server
 ```
 
 Create the network (if not already present):
@@ -73,32 +75,49 @@ docker network create highfishNetwork
 
 ---
 
-## 🔨 Step 1 – Build the dashboard locally
 
-> ⚠️ **Do NOT trigger the build via Portainer!**
-> The process takes longer than the proxy timeout (~100 seconds)
-> and will fail with **Error 524**.
-> → Build once via SSH — after that everything runs automatically.
+---
+
+## ⚡ Quick Start with ghcr.io (Recommended)
+
+For most users, it is easiest to use the pre-built Docker images from the **GitHub Container Registry (ghcr.io)**. This skips the local build process and works out of the box.
+
+### Pull Images
 
 ```bash
-# 📥 Clone the repo
+docker pull ghcr.io/jbkunama1/openwa-api:latest
+docker pull ghcr.io/jbkunama1/openwa-dashboard:latest
+```
+
+### Portainer Stack with ghcr.io
+
+Use the `docker-compose.ghcr.yml` file from this repository or paste this YAML block directly into your Portainer stack. Replace `YOUR_SECURE_API_KEY_HERE` with a secure key.
+## ðŸ”¨ Step 1 â€“ Build the dashboard locally
+
+> âš ï¸ **Do NOT trigger the build via Portainer!**
+> The process takes longer than the proxy timeout (~100 seconds)
+> and will fail with **Error 524**.
+> â†’ Build once via SSH â€” after that everything runs automatically.
+
+```bash
+# ðŸ“¥ Clone the repo
 cd /opt
 git clone --depth=1 https://github.com/rmyndharis/OpenWA.git openwa-src
 cd openwa-src/dashboard
 
-# 🔧 Fix known dependency conflicts
+# ðŸ”§ Fix known dependency conflicts
 # Problem: vite@8 is incompatible with @vitejs/plugin-react@5.1.4
 sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' Dockerfile
 sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' Dockerfile
 
-# 🏗️ Build the dashboard image
+# ðŸ—ï¸ Build the dashboard image
 # YOUR_SERVER_IP = IP your browser uses (e.g. YOURS)
 docker build \
   --build-arg VITE_API_URL=http://YOUR_SERVER_IP:2785 \
   -t openwa-dashboard:local \
   .
 
-# ✅ Verify the image exists
+# âœ… Verify the image exists
 docker images | grep openwa-dashboard
 ```
 
@@ -110,18 +129,18 @@ openwa-dashboard   local   abc123def456   2 minutes ago   ~45MB
 
 ---
 
-## 🐳 Step 2 – Portainer Stack
+## ðŸ³ Step 2 â€“ Portainer Stack
 
-Create a new stack in Portainer → **Web Editor** → paste the YAML:
+Create a new stack in Portainer â†’ **Web Editor** â†’ paste the YAML:
 
 ```yaml
 version: "3.8"
 
 services:
 
-  # ═══════════════════════════════════════
-  # 🤖 OpenWA API
-  # ═══════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ¤– OpenWA API
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   openwa-api:
     build:
       context: https://github.com/rmyndharis/OpenWA.git
@@ -134,30 +153,30 @@ services:
       NODE_ENV: production
       PORT: 2785
       LOG_LEVEL: info
-      # 🗄️ Database
+      # ðŸ—„ï¸ Database
       DATABASE_TYPE: sqlite
       DATABASE_NAME: /app/data/openwa.sqlite
-      # 💬 WhatsApp Engine
+      # ðŸ’¬ WhatsApp Engine
       ENGINE_TYPE: whatsapp-web.js
       SESSION_DATA_PATH: /app/data/sessions
       PUPPETEER_HEADLESS: "true"
       PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
-      # 📁 Storage
+      # ðŸ“ Storage
       STORAGE_TYPE: local
       STORAGE_LOCAL_PATH: /app/data/media
-      # ⚡ Redis (disabled)
+      # âš¡ Redis (disabled)
       REDIS_ENABLED: "false"
-      # 🪝 Webhook
+      # ðŸª Webhook
       WEBHOOK_TIMEOUT: "10000"
       WEBHOOK_MAX_RETRIES: "3"
       WEBHOOK_RETRY_DELAY: "5000"
-      # 🚦 Rate Limiting
+      # ðŸš¦ Rate Limiting
       RATE_LIMIT_TTL: "60"
       RATE_LIMIT_MAX: "100"
-      # 🔌 Plugins
+      # ðŸ”Œ Plugins
       PLUGINS_ENABLED: "true"
       PLUGINS_DIR: /app/data/plugins
-      # 🔑 API Key — set a secure value!
+      # ðŸ”‘ API Key â€” set a secure value!
       API_MASTER_KEY: "YOUR_SECURE_API_KEY_HERE"
     volumes:
       - openwa-data:/app/data
@@ -170,11 +189,11 @@ services:
     networks:
       - highfishNetwork
 
-  # ═══════════════════════════════════════
-  # 🖥️ Dashboard (built locally — no build in Portainer)
-  # ═══════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ–¥ï¸ Dashboard (built locally â€” no build in Portainer)
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   dashboard:
-    image: openwa-dashboard:local   # ← Step 1 must be completed first!
+    image: openwa-dashboard:local   # â† Step 1 must be completed first!
     container_name: openwa-dashboard
     restart: unless-stopped
     ports:
@@ -193,7 +212,7 @@ networks:
     external: true
 ```
 
-> 🔑 **API_MASTER_KEY** — generate a random, secure value:
+> ðŸ”‘ **API_MASTER_KEY** â€” generate a random, secure value:
 > ```bash
 > openssl rand -hex 32
 > ```
@@ -201,18 +220,18 @@ networks:
 
 ---
 
-## 🧪 Step 3 – Test the API
+## ðŸ§ª Step 3 â€“ Test the API
 
 ```bash
-# 🟢 Health check (public — no key required)
+# ðŸŸ¢ Health check (public â€” no key required)
 curl -i http://YOUR_SERVER_IP:2785/api/health
 
-# 🔐 Authenticated endpoint (key required)
+# ðŸ” Authenticated endpoint (key required)
 curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
   -H "X-API-Key: YOUR_SECURE_API_KEY_HERE"
 ```
 
-**✅ Expected response (200 OK):**
+**âœ… Expected response (200 OK):**
 ```json
 {
   "status": "ok",
@@ -224,7 +243,7 @@ curl -i http://YOUR_SERVER_IP:2785/api/health/detailed \
 }
 ```
 
-**❌ On `401 Invalid API key`** — check the key inside the container:
+**âŒ On `401 Invalid API key`** â€” check the key inside the container:
 ```bash
 docker exec -it openwa-api env | grep API_MASTER_KEY
 # Output must exactly match the key you set
@@ -232,20 +251,20 @@ docker exec -it openwa-api env | grep API_MASTER_KEY
 
 ---
 
-## 🖥️ Step 4 – Open the dashboard
+## ðŸ–¥ï¸ Step 4 â€“ Open the dashboard
 
 ```
-🌐  Browser:   http://YOUR_SERVER_IP:8085
-🔗  API URL:   http://YOUR_SERVER_IP:2785
-🔑  API Key:   YOUR_SECURE_API_KEY_HERE
+ðŸŒ  Browser:   http://YOUR_SERVER_IP:8085
+ðŸ”—  API URL:   http://YOUR_SERVER_IP:2785
+ðŸ”‘  API Key:   YOUR_SECURE_API_KEY_HERE
 ```
 
 ---
 
-## 🔄 Auto-update via Cron
+## ðŸ”„ Auto-update via Cron
 
 The script checks daily whether anything in the `dashboard/` folder has changed.
-A rebuild only happens when changes are detected. Old images are cleaned up automatically — only the **2 most recent** are kept.
+A rebuild only happens when changes are detected. Old images are cleaned up automatically â€” only the **2 most recent** are kept.
 
 ### Create the script
 
@@ -259,23 +278,23 @@ IMAGE_NAME="openwa-dashboard"
 VITE_API_URL="http://YOUR_SERVER_IP:2785"
 LOG_PREFIX="[openwa-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
-echo "$LOG_PREFIX 🚀 Starting"
+echo "$LOG_PREFIX ðŸš€ Starting"
 
 cd "$REPO_DIR"
 git fetch origin main
 CHANGES=$(git diff HEAD origin/main --name-only | grep "^dashboard/" || true)
 git pull origin main
 
-# 🔧 Re-apply Dockerfile fixes after every git pull
+# ðŸ”§ Re-apply Dockerfile fixes after every git pull
 sed -i 's/FROM node:.*/FROM node:20-alpine AS builder/' dashboard/Dockerfile
 sed -i 's/RUN npm ci/RUN npm install --legacy-peer-deps/' dashboard/Dockerfile
 
 if [ -z "$CHANGES" ]; then
-  echo "$LOG_PREFIX ✅ No dashboard changes, skipping build."
+  echo "$LOG_PREFIX âœ… No dashboard changes, skipping build."
   exit 0
 fi
 
-echo "$LOG_PREFIX 🔨 Changes detected, rebuilding..."
+echo "$LOG_PREFIX ðŸ”¨ Changes detected, rebuilding..."
 
 TIMESTAMP=$(date '+%Y%m%d%H%M%S')
 docker build \
@@ -285,10 +304,10 @@ docker build \
   "$REPO_DIR/dashboard"
 
 docker restart openwa-dashboard
-echo "$LOG_PREFIX ♻️  Container restarted."
+echo "$LOG_PREFIX â™»ï¸  Container restarted."
 
-# 🧹 Clean up old images: keep only the 2 most recent
-echo "$LOG_PREFIX 🗑️  Cleaning up old images..."
+# ðŸ§¹ Clean up old images: keep only the 2 most recent
+echo "$LOG_PREFIX ðŸ—‘ï¸  Cleaning up old images..."
 docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
   | grep -v "latest" \
   | sort -r \
@@ -296,7 +315,7 @@ docker images "$IMAGE_NAME" --format "{{.Tag}}\t{{.ID}}" \
   | awk '{print $2}' \
   | xargs -r docker rmi
 
-echo "$LOG_PREFIX ✅ Done. Current images:"
+echo "$LOG_PREFIX âœ… Done. Current images:"
 docker images "$IMAGE_NAME"
 EOF
 
@@ -307,7 +326,7 @@ chmod +x /opt/openwa-update.sh
 
 ```bash
 crontab -e
-# Add this line — runs daily at 3:00 AM:
+# Add this line â€” runs daily at 3:00 AM:
 0 3 * * * /opt/openwa-update.sh >> /var/log/openwa-update.log 2>&1
 ```
 
@@ -323,10 +342,10 @@ tail -f /var/log/openwa-update.log
 
 ---
 
-## 🐛 Known Issues & Solutions
+## ðŸ› Known Issues & Solutions
 
 <details>
-<summary>❌ <b>host not found in upstream "openwa"</b></summary>
+<summary>âŒ <b>host not found in upstream "openwa"</b></summary>
 
 **Cause:** The dashboard `Dockerfile.traefik` uses an nginx upstream that can only be resolved inside a Traefik network.
 
@@ -334,15 +353,15 @@ tail -f /var/log/openwa-update.log
 </details>
 
 <details>
-<summary>❌ <b>npm error ERESOLVE / exit code 1</b></summary>
+<summary>âŒ <b>npm error ERESOLVE / exit code 1</b></summary>
 
 **Cause:** `vite@8.x` (in the repo) is incompatible with `@vitejs/plugin-react@5.1.4` (which only supports up to vite@7).
 
-**Fix:** Run the two `sed` commands from Step 1 — pin Node 20 and switch to `npm install --legacy-peer-deps`.
+**Fix:** Run the two `sed` commands from Step 1 â€” pin Node 20 and switch to `npm install --legacy-peer-deps`.
 </details>
 
 <details>
-<summary>❌ <b>Error 524 / Timeout during Portainer deploy</b></summary>
+<summary>âŒ <b>Error 524 / Timeout during Portainer deploy</b></summary>
 
 **Cause:** Cloudflare and other proxies drop HTTP connections after ~100 seconds. The npm build takes longer.
 
@@ -350,7 +369,7 @@ tail -f /var/log/openwa-update.log
 </details>
 
 <details>
-<summary>❌ <b>401 Invalid API key</b></summary>
+<summary>âŒ <b>401 Invalid API key</b></summary>
 
 **Cause:** `API_MASTER_KEY` is empty, misspelled, or the wrong header is used.
 
@@ -365,7 +384,7 @@ curl -H "X-API-Key: YOUR_KEY" http://IP:2785/api/health/detailed
 </details>
 
 <details>
-<summary>❌ <b>NGINX only shows the default page</b></summary>
+<summary>âŒ <b>NGINX only shows the default page</b></summary>
 
 **Cause:** Wrong image used or build was not executed.
 
@@ -374,17 +393,17 @@ curl -H "X-API-Key: YOUR_KEY" http://IP:2785/api/health/detailed
 
 ---
 
-## 🔌 Ports
+## ðŸ”Œ Ports
 
 | Service | Port | URL | Description |
 |---|---|---|---|
-| 🤖 API | `2785` | `http://IP:2785/api` | REST API |
-| 📖 Swagger | `2785` | `http://IP:2785/api/docs` | Interactive API docs |
-| 🖥️ Dashboard | `8085` | `http://IP:8085` | Web UI (standalone) |
+| ðŸ¤– API | `2785` | `http://IP:2785/api` | REST API |
+| ðŸ“– Swagger | `2785` | `http://IP:2785/api/docs` | Interactive API docs |
+| ðŸ–¥ï¸ Dashboard | `8085` | `http://IP:8085` | Web UI (standalone) |
 
 ---
 
-## 🔗 Links
+## ðŸ”— Links
 
 [![OpenWA Upstream](https://img.shields.io/badge/OpenWA-Upstream%20Repo-6366f1?style=flat-square&logo=github)](https://github.com/rmyndharis/OpenWA)
 [![Issues](https://img.shields.io/badge/OpenWA-Issues-ef4444?style=flat-square&logo=github)](https://github.com/rmyndharis/OpenWA/issues)
@@ -395,8 +414,11 @@ curl -H "X-API-Key: YOUR_KEY" http://IP:2785/api/health/detailed
 
 <div align="center">
 
-**hAI · OpenWA in the LAN** — Self-hosted, open source, no cloud required 🏠
+**hAI Â· OpenWA in the LAN** â€” Self-hosted, open source, no cloud required ðŸ 
 
-<sub>Created by <a href="https://github.com/jbkunama1">therealteacher</a> · Karlsruhe 🇩🇪</sub>
+<sub>Created by <a href="https://github.com/jbkunama1">therealteacher</a> Â· Karlsruhe ðŸ‡©ðŸ‡ª</sub>
 
 </div>
+
+
+
