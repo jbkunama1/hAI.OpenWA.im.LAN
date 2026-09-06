@@ -27,8 +27,8 @@ jobs:
             dockerfile: Dockerfile
             build-args: ""
           - name: openwa-dashboard
-            context: .
-            dockerfile: Dockerfile
+            context: https://github.com/rmyndharis/OpenWA.git#main
+            dockerfile: dashboard/Dockerfile
             build-args: --build-arg VITE_API_URL=https://openwa.example.com
     steps:
       - name: Checkout repository
